@@ -1,5 +1,6 @@
-from typing import Optional, AsyncGenerator
-from fastapi import Depends, HTTPException, status, Request
+from fastapi import Depends, HTTPException, status
+# from typing import Optional, AsyncGenerator
+# ! Need add after Reques - line up (block fastapi)
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
@@ -8,10 +9,10 @@ from app.core.db import get_db
 from app.core.security import verify_jwt_token
 from app.services.user_service import UserService
 from app.models.user import User
-from app.services.wish_service import WishService
-from app.services.wishlist_service import WishlistService
-from app.models.wish import Wish
-from app.models.wishlist import Wishlist
+# from app.services.wish_service import WishService
+# from app.services.wishlist_service import WishlistService
+# from app.models.wish import Wish
+# from app.models.wishlist import Wishlist
 
 
 logger = logging.getLogger(__name__)

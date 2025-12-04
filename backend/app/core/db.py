@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
 from typing import AsyncGenerator
+from fastapi import HTTPException, status
 
 from app.core.base import Base
 from app.models.user import User
@@ -25,8 +26,12 @@ async def get_db() -> AsyncGenerator:
     async with AsyncSessionLocal() as session:
         try:
             yield session
-        except Exception:
+        except Exception as e:
             await session.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f'Error database: {str(e)}'
+            )
         finally:
             await session.close()
 

@@ -3,12 +3,25 @@ from datetime import datetime
 from typing import Optional
 import hashlib
 import hmac
+import logging
 
 from app.core.config import settings
 
 
+logger = logging.getLogger(__name__)
+
+
 def verify_tg_init_data(init_data: str) -> bool:
     try:
+
+        if not init_data or not isinstance(init_data, str):
+            logger.error(f'Invalid init_data: {init_data}')
+            return False
+
+        if not settings.TELEGRAM_BOT_TOKEN:
+            logger.error('Invalid bot_token')
+            return False
+
         pars = init_data.split('&')
         data_dict = {}
         hash_value = None

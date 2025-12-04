@@ -23,6 +23,12 @@ async def auth_telegram(
     db: AsyncSession = Depends(get_db)
 ):
     init_data = auth_data.get('initData')
+    if not init_data:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Invalid init data'
+        )
+
     telegram_user = auth_data.get('user')
 
     if not verify_tg_init_data(init_data=init_data):
