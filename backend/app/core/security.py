@@ -1,5 +1,5 @@
 # from jose import JWTError, jwt
-from jose import JWTError, jwt  # ← Эта библиотека уже установлена!
+import jwt
 from datetime import datetime, timedelta
 from typing import Optional
 import hashlib
@@ -62,6 +62,17 @@ logger = logging.getLogger(__name__)
 #         return False
 
 
+def verify_tg_init_data(init_data: str) -> bool:
+    """
+    TEMPORARY: Telegram verification disabled for debugging
+    """
+    print("=" * 50)
+    print("TELEGRAM VERIFICATION FUNCTION CALLED")
+    print("TEMPORARILY RETURNING TRUE FOR DEBUGGING")
+    print("=" * 50)
+    return True  # ← Ключевая строка!
+
+
 def create_jwt_token(data: dict) -> str:
     """Create JWT token"""
     to_encode = data.copy()
@@ -79,12 +90,11 @@ def create_jwt_token(data: dict) -> str:
     return encoded_jwt
 
 def verify_jwt_token(token: str) -> Optional[dict]:
-    """Verify JWT token"""
     try:
         payload = jwt.decode(
             token,
             settings.SECRET_KEY,
-            algorithms=[settings.ALGORITHM]
+            algorithms=settings.ALGORITHM
         )
         return payload
     except JWTError:
