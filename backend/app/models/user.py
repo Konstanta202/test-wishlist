@@ -1,5 +1,5 @@
 from typing import Optional, List, TYPE_CHECKING
-from sqlalchemy import String, Date, Boolean, Enum, Text, TIMESTAMP
+from sqlalchemy import String, Date, Boolean, Enum, Text, TIMESTAMP, BigInteger
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 import enum
@@ -36,6 +36,7 @@ class User(Base):
         primary_key=True
     )
     telegram_id: Mapped[int] = mapped_column(
+        BigInteger,
         nullable=False,
         unique=True,
         index=True
@@ -46,7 +47,7 @@ class User(Base):
     )
     birth_date: Mapped[Date] = mapped_column(
         Date,
-        nullable=False
+        nullable=True
     )
     photo: Mapped[Optional[str]] = mapped_column(
         Text,
