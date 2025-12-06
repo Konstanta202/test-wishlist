@@ -11,74 +11,137 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
+# def verify_tg_init_data(init_data: str) -> bool:
+#     try:
+#         logger.info(f"Verifying Telegram init data")
+        
+#         if not init_data or not isinstance(init_data, str):
+#             logger.error(f'Invalid init_data: {init_data}')
+#             return False
+
+#         if not settings.TELEGRAM_BOT_TOKEN:
+#             logger.error('TELEGRAM_BOT_TOKEN not set')
+#             return False
+
+#         logger.info(f"Parsing init data: {init_data[:100]}...")
+#         pars = init_data.split('&')
+#         data_dict = {}
+#         hash_value = None
+
+#         for pair in pars:
+#             key, value = pair.split('=')
+#             if key == 'hash':
+#                 hash_value = value
+#             else:
+#                 data_dict[key] = value
+
+#         if not hash_value:
+#             logger.error('No hash in init data')
+#             return False
+
+#         logger.info(f"Hash from request: {hash_value}")
+#         data_check = '\n'.join(
+#             f'{key}={data_dict[key]}'
+#             for key in sorted(data_dict.keys())
+#         )
+
+#         logger.info(f"Data check string: {data_check}")
+        
+#         # Преобразуем токен в bytes
+#         bot_token_bytes = settings.TELEGRAM_BOT_TOKEN.encode('utf-8')
+#         logger.info(f"Bot token length: {len(bot_token_bytes)} bytes")
+        
+#         # Создаем секретный ключ
+#         secret_key = hmac.new(
+#             key=bot_token_bytes,
+#             msg=b"WebAppData",
+#             digestmod=hashlib.sha256
+#         ).digest()
+        
+#         logger.info(f"Secret key length: {len(secret_key)} bytes")
+        
+#         # Вычисляем хеш
+#         computed_hash = hmac.new(
+#             key=secret_key,
+#             msg=data_check.encode(),
+#             digestmod=hashlib.sha256
+#         ).hexdigest()
+        
+#         logger.info(f"Computed hash: {computed_hash}")
+#         logger.info(f"Expected hash: {hash_value}")
+        
+#         result = computed_hash == hash_value
+#         logger.info(f"Verification result: {result}")
+        
+#         return result
+        
+#     except Exception as e:
+#         logger.error(f'Error in verify_tg_init_data: {e}', exc_info=True)
+#         return False
+
+
 def verify_tg_init_data(init_data: str) -> bool:
     try:
-        logger.info(f"Verifying Telegram init data")
+        print(f"FULL INIT DATA: {init_data}")
         
-        if not init_data or not isinstance(init_data, str):
-            logger.error(f'Invalid init_data: {init_data}')
-            return False
-
-        if not settings.TELEGRAM_BOT_TOKEN:
-            logger.error('TELEGRAM_BOT_TOKEN not set')
-            return False
-
-        logger.info(f"Parsing init data: {init_data[:100]}...")
-        pars = init_data.split('&')
+        # Разбираем параметры
+        pairs = init_data.split('&')
         data_dict = {}
-        hash_value = None
-
-        for pair in pars:
-            key, value = pair.split('=')
-            if key == 'hash':
-                hash_value = value
+        signature = None
+        
+        for pair in pairs:
+            if '=' not in pair:
+                continue
+            key, value = pair.split('=', 1)
+            if key == 'signature':
+                signature = value
+                print(f"Found signature: {value[:30]}...")
             else:
                 data_dict[key] = value
-
-        if not hash_value:
-            logger.error('No hash in init data')
+                print(f"{key}: {value[:50]}...")
+        
+        if not signature:
+            print("ERROR: No signature found!")
             return False
-
-        logger.info(f"Hash from request: {hash_value}")
-        data_check = '\n'.join(
-            f'{key}={data_dict[key]}'
-            for key in sorted(data_dict.keys())
-        )
-
-        logger.info(f"Data check string: {data_check}")
         
-        # Преобразуем токен в bytes
-        bot_token_bytes = settings.TELEGRAM_BOT_TOKEN.encode('utf-8')
-        logger.info(f"Bot token length: {len(bot_token_bytes)} bytes")
+        # Для проверки нужно собрать строку без signature
+        # В WebApp v2 проверяется строка: query_id + user + auth_date
+        check_string = f"query_id={data_dict.get('query_id', '')}\n"
+        check_string += f"user={data_dict.get('user', '')}\n"
+        check_string += f"auth_date={data_dict.get('auth_date', '')}"
         
-        # Создаем секретный ключ
+        print(f"Check string:\n{check_string}")
+        
+        # Секретный ключ
         secret_key = hmac.new(
-            key=bot_token_bytes,
-            msg=b"WebAppData",
+            key=b"WebAppData",
+            msg=settings.TELEGRAM_BOT_TOKEN.encode(),
             digestmod=hashlib.sha256
         ).digest()
         
-        logger.info(f"Secret key length: {len(secret_key)} bytes")
+        print(f"Secret key hex: {secret_key.hex()[:30]}...")
         
-        # Вычисляем хеш
-        computed_hash = hmac.new(
+        # Проверяем подпись
+        calculated_signature = hmac.new(
             key=secret_key,
-            msg=data_check.encode(),
+            msg=check_string.encode(),
             digestmod=hashlib.sha256
         ).hexdigest()
         
-        logger.info(f"Computed hash: {computed_hash}")
-        logger.info(f"Expected hash: {hash_value}")
+        print(f"Calculated signature: {calculated_signature}")
+        print(f"Received signature:   {signature}")
         
-        result = computed_hash == hash_value
-        logger.info(f"Verification result: {result}")
+        # Сравниваем
+        result = hmac.compare_digest(calculated_signature, signature)
+        print(f"Verification result: {result}")
         
         return result
         
     except Exception as e:
-        logger.error(f'Error in verify_tg_init_data: {e}', exc_info=True)
+        print(f"ERROR in verify_tg_init_data: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False
-
 
 def create_jwt_token(data: dict):
     to_encore = data.copy()
