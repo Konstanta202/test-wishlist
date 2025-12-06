@@ -152,7 +152,7 @@ async def auth_telegram(
         
         # 4. Ищем пользователя в БД
         print(f"7. Searching user in DB with telegram_id: {telegram_id}")
-        user = await user_service.get_user_by_telegram_id(db, telegram_id)
+        user = await user_service.get_user_by_telegram_id(telegram_id)
         
         if not user:
             print(f"8. User not found, creating new...")
