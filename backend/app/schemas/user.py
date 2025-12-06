@@ -18,7 +18,7 @@ class TextSizeEnum(str, Enum):
 
 class UserBase(BaseModel):
     name: str
-    birth_date: date
+    birth_date: Optional[date] = None
     photo: Optional[str] = None
     theme: ThemeEnum = ThemeEnum.light
     text_size: TextSizeEnum = TextSizeEnum.medium
@@ -30,7 +30,7 @@ class UserBase(BaseModel):
 class UserCreate(BaseModel):
     telegram_id: int
     name: str
-    birth_date: date
+    birth_date: Optional[date] = None
     photo: Optional[str] = None
     theme: ThemeEnum = ThemeEnum.light
     text_size: TextSizeEnum = TextSizeEnum.medium
@@ -50,7 +50,7 @@ class UserResponse(UserBase):
     id: int
     telegram_id: int
     name: str
-    birth_date: date
+    birth_date: Optional[date] = None
     photo: Optional[str] = None
     theme: ThemeEnum
     text_size: TextSizeEnum
