@@ -108,7 +108,7 @@ async def auth_telegram(
     try:
         # 1. Получаем данные
         print(f"1. Received auth_data: {auth_data}")
-        
+        user_service = UserService(db)
         init_data = auth_data.get('initData')
         telegram_user = auth_data.get('user')
         
@@ -152,7 +152,7 @@ async def auth_telegram(
         
         # 4. Ищем пользователя в БД
         print(f"7. Searching user in DB with telegram_id: {telegram_id}")
-        user = await UserService.get_user_by_telegram_id(db, telegram_id)
+        user = await user_service.get_user_by_telegram_id(db, telegram_id)
         
         if not user:
             print(f"8. User not found, creating new...")
@@ -161,6 +161,7 @@ async def auth_telegram(
                 name=f'{first_name} {last_name}'.strip(),
                 photo=photo_url
             )
+            user = await user_service.create_user(user_create)
             print(f"9. UserCreate object: {user_create}")
             
             try:
