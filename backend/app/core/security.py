@@ -1,6 +1,5 @@
 # from jose import JWTError, jwt
-import jwt  # PyJWT
-from jwt.exceptions import InvalidTokenError, ExpiredSignatureError
+from jose import JWTError, jwt  # ← Эта библиотека уже установлена!
 from datetime import datetime, timedelta
 from typing import Optional
 import hashlib
@@ -63,38 +62,29 @@ logger = logging.getLogger(__name__)
 #         return False
 
 
-def verify_tg_init_data(init_data: str) -> bool:
-    """
-    TEMPORARY: Telegram verification disabled for debugging
-    """
-    print("=" * 50)
-    print("TELEGRAM VERIFICATION FUNCTION CALLED")
-    print("TEMPORARILY RETURNING TRUE FOR DEBUGGING")
-    print("=" * 50)
-    return True  # ← Ключевая строка!
-
-
-def create_jwt_token(data: dict):
-    to_encore = data.copy()
-    delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    expire = datetime.utcnow() + delta
-
-    to_encore.update({'exp': expire})
-
-    encoder_jwt = jwt.encode(
-        to_encore,
+def create_jwt_token(data: dict) -> str:
+    """Create JWT token"""
+    to_encode = data.copy()
+    
+    # Время истечения
+    expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({'exp': expire})
+    
+    # Создаем токен
+    encoded_jwt = jwt.encode(
+        to_encode,
         settings.SECRET_KEY,
         algorithm=settings.ALGORITHM
     )
-    return encoder_jwt
-
+    return encoded_jwt
 
 def verify_jwt_token(token: str) -> Optional[dict]:
+    """Verify JWT token"""
     try:
         payload = jwt.decode(
             token,
             settings.SECRET_KEY,
-            algorithms=settings.ALGORITHM
+            algorithms=[settings.ALGORITHM]
         )
         return payload
     except JWTError:
