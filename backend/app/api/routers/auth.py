@@ -164,12 +164,6 @@ async def auth_telegram(
             user = await user_service.create_user(user_create)
             print(f"9. UserCreate object: {user_create}")
             
-            try:
-                user = await UserService.create_user(db, user_create)
-                print(f"✅ 10. New user created with ID: {user.id}")
-            except Exception as e:
-                print(f"❌ ERROR creating user: {e}")
-                raise
         else:
             print(f"✅ 11. User found with ID: {user.id}")
             user = UserResponse.model_validate(user)
