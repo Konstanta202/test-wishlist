@@ -79,62 +79,79 @@ logger = logging.getLogger(__name__)
 #         logger.error(f'Error in verify_tg_init_data: {e}', exc_info=True)
 #         return False
 
-
 def verify_tg_init_data(init_data: str) -> bool:
     """
-    Simple and correct Telegram validation
+    Correct Telegram WebApp validation with proper parameter order
     """
     try:
-        print("=== SIMPLE TELEGRAM VERIFICATION ===")
+        print("=== CORRECT TELEGRAM VERIFICATION ===")
         
-        # Extract parameters
-        data_dict = {}
-        hash_value = None
-        
+        # 1. Parse all parameters
+        params = {}
         for pair in init_data.split('&'):
+            if '=' not in pair:
+                continue
             key, value = pair.split('=', 1)
-            if key == 'hash':
-                hash_value = value
-            else:
-                data_dict[key] = value
+            params[key] = value
         
+        print(f"All params found: {list(params.keys())}")
+        
+        hash_value = params.get('hash')
         if not hash_value:
+            print("No hash parameter")
             return False
         
-        # Telegram's algorithm: sort alphabetically, exclude 'hash'
-        check_string_parts = []
-        for key in sorted(data_dict.keys()):
-            if key != 'hash':  # exclude hash itself
-                check_string_parts.append(f"{key}={data_dict[key]}")
+        print(f"Hash to check: {hash_value[:20]}...")
         
-        check_string = '\n'.join(check_string_parts)
+        # 2. Create data_check_string WITHOUT 'hash'
+        # Parameters should be in ALPHABETICAL order!
+        data_check_parts = []
         
-        print(f"Check string:\n{check_string}")
+        # Sort alphabetically and exclude 'hash'
+        for key in sorted(params.keys()):
+            if key != 'hash':
+                data_check_parts.append(f"{key}={params[key]}")
         
-        # Compute secret
+        data_check_string = '\n'.join(data_check_parts)
+        
+        print(f"\nData check string ({len(data_check_string)} chars):")
+        print(data_check_string)
+        
+        # 3. Log the exact order
+        print(f"\nParameter order in check string:")
+        for i, part in enumerate(data_check_parts):
+            key = part.split('=')[0]
+            print(f"  {i+1}. {key}")
+        
+        # 4. Compute secret
         secret = hmac.new(
             key=b"WebAppData",
             msg=settings.TELEGRAM_BOT_TOKEN.encode(),
             digestmod=hashlib.sha256
         ).digest()
         
-        # Compute hash
+        print(f"\nSecret key (first 16 bytes): {secret[:16].hex()}...")
+        
+        # 5. Compute hash
         computed = hmac.new(
             key=secret,
-            msg=check_string.encode(),
+            msg=data_check_string.encode(),
             digestmod=hashlib.sha256
         ).hexdigest()
         
-        print(f"Computed: {computed}")
-        print(f"Expected: {hash_value}")
-        print(f"Match: {computed == hash_value}")
+        print(f"\nComputed hash: {computed}")
+        print(f"Expected hash: {hash_value}")
         
-        return hmac.compare_digest(computed, hash_value)
+        result = hmac.compare_digest(computed, hash_value)
+        print(f"\nResult: {'✅ SUCCESS' if result else '❌ FAILED'}")
+        
+        return result
         
     except Exception as e:
         print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
         return False
-
 
 def create_jwt_token(data: dict):
     to_encore = data.copy()
