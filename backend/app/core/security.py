@@ -82,65 +82,59 @@ logger = logging.getLogger(__name__)
 
 def verify_tg_init_data(init_data: str) -> bool:
     try:
-        print(f"FULL INIT DATA: {init_data}")
+        print("DEBUG: Trying HASH verification only")
         
-        # Разбираем параметры
+        # Извлекаем hash
         pairs = init_data.split('&')
         data_dict = {}
-        signature = None
+        hash_value = None
         
         for pair in pairs:
             if '=' not in pair:
                 continue
             key, value = pair.split('=', 1)
-            if key == 'signature':
-                signature = value
-                print(f"Found signature: {value[:30]}...")
+            if key == 'hash':
+                hash_value = value
             else:
                 data_dict[key] = value
-                print(f"{key}: {value[:50]}...")
         
-        if not signature:
-            print("ERROR: No signature found!")
+        if not hash_value:
+            print("No hash found")
             return False
         
-        # Для проверки нужно собрать строку без signature
-        # В WebApp v2 проверяется строка: query_id + user + auth_date
-        check_string = f"query_id={data_dict.get('query_id', '')}\n"
-        check_string += f"user={data_dict.get('user', '')}\n"
-        check_string += f"auth_date={data_dict.get('auth_date', '')}"
+        # Собираем строку (все кроме hash)
+        check_items = []
+        for key in sorted(data_dict.keys()):
+            if key != 'hash':
+                check_items.append(f"{key}={data_dict[key]}")
         
-        print(f"Check string:\n{check_string}")
+        check_string = "\n".join(check_items)
+        print(f"Check string length: {len(check_string)}")
+        print(f"Check string: {check_string}")
         
-        # Секретный ключ
+        # Проверяем
         secret_key = hmac.new(
             key=b"WebAppData",
             msg=settings.TELEGRAM_BOT_TOKEN.encode(),
             digestmod=hashlib.sha256
         ).digest()
         
-        print(f"Secret key hex: {secret_key.hex()[:30]}...")
-        
-        # Проверяем подпись
-        calculated_signature = hmac.new(
+        calculated = hmac.new(
             key=secret_key,
             msg=check_string.encode(),
             digestmod=hashlib.sha256
         ).hexdigest()
         
-        print(f"Calculated signature: {calculated_signature}")
-        print(f"Received signature:   {signature}")
+        print(f"Calculated: {calculated}")
+        print(f"Expected:   {hash_value}")
         
-        # Сравниваем
-        result = hmac.compare_digest(calculated_signature, signature)
-        print(f"Verification result: {result}")
+        result = calculated == hash_value
+        print(f"Result: {result}")
         
         return result
         
     except Exception as e:
-        print(f"ERROR in verify_tg_init_data: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        print(f"Error: {e}")
         return False
 
 def create_jwt_token(data: dict):
