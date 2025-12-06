@@ -41,11 +41,13 @@ def verify_tg_init_data(init_data: str) -> bool:
             for key in sorted(data_dict.keys())
         )
 
+        bot_token_bytes = settings.TELEGRAM_BOT_TOKEN.encode('utf-8')
+
         secret_key = hmac.new(
-            key=settings.TELEGRAM_BOT_TOKEN,
+            key=bot_token_bytes,
             msg=b"WebAppData",
             digestmod=hashlib.sha256
-        ).hexdigest()
+        ).digest()
 
         computed_hash = hmac.new(
             key=secret_key,
@@ -53,7 +55,7 @@ def verify_tg_init_data(init_data: str) -> bool:
             digestmod=hashlib.sha256
         ).hexdigest()
 
-        return secret_key == computed_hash
+        return computed_hash == hash_value
     except Exception as e:
         print(f'Error: {e}')
         return False
@@ -79,7 +81,7 @@ def verify_jwt_token(token: str) -> Optional[dict]:
         payload = jwt.decode(
             token,
             settings.SECRET_KEY,
-            algorithms=settings.ALGORITHM
+            algorithms=[settings.ALGORITHM]
         )
         return payload
     except JWTError:
