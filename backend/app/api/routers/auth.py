@@ -27,7 +27,7 @@ async def auth_telegram(
 ):
     logger.info(f"Received auth_telegram request: {auth_data}")
     init_data = auth_data.get('initData')
-    logger.info(f'THIS IS INIT DATA: {init_data}')
+    print(f'THIS IS INIT DATA: {init_data}')
     if not init_data:
         logger.error("No initData in request")
         raise HTTPException(
