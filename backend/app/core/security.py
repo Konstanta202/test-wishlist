@@ -82,64 +82,108 @@ logger = logging.getLogger(__name__)
 
 def verify_tg_init_data(init_data: str) -> bool:
     """
-    According to Telegram docs:
-    hash = HMAC_SHA256(secret_key, "auth_date\nquery_id\nuser")
+    Correct Telegram WebApp validation with debug info
     """
     try:
-        print("=== SIMPLE CORRECT VERIFICATION ===")
+        print("=== DEBUG VERIFICATION ===")
         
-        # Извлекаем нужные параметры
+        # 1. Покажем токен (первые несколько символов)
+        token = settings.TELEGRAM_BOT_TOKEN
+        print(f"Bot token exists: {bool(token)}")
+        if token:
+            print(f"Bot token preview: {token[:20]}...")
+            print(f"Bot token length: {len(token)}")
+            print(f"Bot token format (has colon): {':' in token}")
+        
+        # 2. Разберем параметры
         params = {}
         for pair in init_data.split('&'):
             if '=' not in pair:
                 continue
             key, value = pair.split('=', 1)
             params[key] = value
+            print(f"  {key}: {value[:50]}..." if len(value) > 50 else f"  {key}: {value}")
         
         hash_value = params.get('hash')
         if not hash_value:
-            print("No hash parameter")
+            print("ERROR: No hash parameter")
             return False
         
-        # Собираем строку в правильном порядке
-        # Важен порядок: auth_date, query_id, user
-        data_check_parts = []
+        print(f"\nHash to verify: {hash_value}")
         
-        if 'auth_date' in params:
-            data_check_parts.append(f"auth_date={params['auth_date']}")
-        if 'query_id' in params:
-            data_check_parts.append(f"query_id={params['query_id']}")
-        if 'user' in params:
-            data_check_parts.append(f"user={params['user']}")
+        # 3. Создаем data_check_string
+        # Важно: исключаем только 'hash', остальные параметры включаем
+        # И сортируем по алфавиту!
+        check_items = []
+        for key in sorted(params.keys()):
+            if key != 'hash':  # исключаем только hash
+                check_items.append(f"{key}={params[key]}")
         
-        data_check_string = '\n'.join(data_check_parts)
+        data_check_string = '\n'.join(check_items)
         
-        print(f"Data check string:\n{data_check_string}")
+        print(f"\nData check string ({len(data_check_string)} chars):")
+        print(data_check_string)
+        print(f"Data check string bytes: {data_check_string.encode()}")
         
-        # Секретный ключ
+        # 4. Создаем secret_key
+        print(f"\nCreating secret_key...")
+        print(f"Key (b'WebAppData'): {b'WebAppData'}")
+        print(f"Msg (bot token): {token.encode()}")
+        
         secret_key = hmac.new(
-            key=b"WebAppData",
-            msg=settings.TELEGRAM_BOT_TOKEN.encode(),
+            key=b"WebAppData",  # Фиксированная строка!
+            msg=token.encode(),
             digestmod=hashlib.sha256
         ).digest()
         
-        # Вычисляем хеш
+        print(f"Secret key (hex): {secret_key.hex()}")
+        print(f"Secret key length: {len(secret_key)} bytes")
+        
+        # 5. Вычисляем hash
+        print(f"\nCalculating hash...")
+        print(f"HMAC key: {secret_key.hex()[:64]}...")
+        print(f"HMAC msg: {data_check_string.encode()}")
+        
         calculated = hmac.new(
             key=secret_key,
             msg=data_check_string.encode(),
             digestmod=hashlib.sha256
         ).hexdigest()
         
-        print(f"Calculated: {calculated}")
-        print(f"Expected:   {hash_value}")
+        print(f"\nCalculated hash: {calculated}")
+        print(f"Expected hash:   {hash_value}")
+        print(f"Hashes match: {calculated == hash_value}")
         
-        result = calculated == hash_value
-        print(f"Result: {result}")
+        # 6. Также попробуем альтернативный вариант
+        print(f"\n=== ALTERNATIVE: Try without signature ===")
+        if 'signature' in params:
+            # Исключаем и signature тоже
+            check_items2 = []
+            for key in sorted(params.keys()):
+                if key not in ['hash', 'signature']:  # исключаем оба
+                    check_items2.append(f"{key}={params[key]}")
+            
+            data_check_string2 = '\n'.join(check_items2)
+            print(f"Data check string (no signature):")
+            print(data_check_string2)
+            
+            calculated2 = hmac.new(
+                key=secret_key,
+                msg=data_check_string2.encode(),
+                digestmod=hashlib.sha256
+            ).hexdigest()
+            
+            print(f"Calculated (no signature): {calculated2}")
+            print(f"Expected:                 {hash_value}")
+            print(f"Hashes match: {calculated2 == hash_value}")
         
-        return result
+        # Возвращаем результат основной проверки
+        return calculated == hash_value
         
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"ERROR in verification: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
