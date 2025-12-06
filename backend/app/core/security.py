@@ -1,4 +1,6 @@
-from jose import JWTError, jwt
+# from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import InvalidTokenError, ExpiredSignatureError
 from datetime import datetime, timedelta
 from typing import Optional
 import hashlib
