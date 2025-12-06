@@ -17,6 +17,15 @@ services:
     networks:
       - app-network
 
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    networks:
+      - app-network
+
   backend:
     build: ./backend
     container_name: backend-app
