@@ -11,147 +11,55 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
-# def verify_tg_init_data(init_data: str) -> bool:
-#     try:
-#         logger.info(f"Verifying Telegram init data")
-        
-#         if not init_data or not isinstance(init_data, str):
-#             logger.error(f'Invalid init_data: {init_data}')
-#             return False
-
-#         if not settings.TELEGRAM_BOT_TOKEN:
-#             logger.error('TELEGRAM_BOT_TOKEN not set')
-#             return False
-
-#         logger.info(f"Parsing init data: {init_data[:100]}...")
-#         pars = init_data.split('&')
-#         data_dict = {}
-#         hash_value = None
-
-#         for pair in pars:
-#             key, value = pair.split('=')
-#             if key == 'hash':
-#                 hash_value = value
-#             else:
-#                 data_dict[key] = value
-
-#         if not hash_value:
-#             logger.error('No hash in init data')
-#             return False
-
-#         logger.info(f"Hash from request: {hash_value}")
-#         data_check = '\n'.join(
-#             f'{key}={data_dict[key]}'
-#             for key in sorted(data_dict.keys())
-#         )
-
-#         logger.info(f"Data check string: {data_check}")
-        
-#         # Преобразуем токен в bytes
-#         bot_token_bytes = settings.TELEGRAM_BOT_TOKEN.encode('utf-8')
-#         logger.info(f"Bot token length: {len(bot_token_bytes)} bytes")
-        
-#         # Создаем секретный ключ
-#         secret_key = hmac.new(
-#             key=bot_token_bytes,
-#             msg=b"WebAppData",
-#             digestmod=hashlib.sha256
-#         ).digest()
-        
-#         logger.info(f"Secret key length: {len(secret_key)} bytes")
-        
-#         # Вычисляем хеш
-#         computed_hash = hmac.new(
-#             key=secret_key,
-#             msg=data_check.encode(),
-#             digestmod=hashlib.sha256
-#         ).hexdigest()
-        
-#         logger.info(f"Computed hash: {computed_hash}")
-#         logger.info(f"Expected hash: {hash_value}")
-        
-#         result = computed_hash == hash_value
-#         logger.info(f"Verification result: {result}")
-        
-#         return result
-        
-#     except Exception as e:
-#         logger.error(f'Error in verify_tg_init_data: {e}', exc_info=True)
-#         return False
-
 def verify_tg_init_data(init_data: str) -> bool:
-    """
-    Correct Telegram WebApp validation with proper parameter order
-    """
     try:
-        print("=== CORRECT TELEGRAM VERIFICATION ===")
-        
-        # 1. Parse all parameters
-        params = {}
-        for pair in init_data.split('&'):
-            if '=' not in pair:
-                continue
-            key, value = pair.split('=', 1)
-            params[key] = value
-        
-        print(f"All params found: {list(params.keys())}")
-        
-        hash_value = params.get('hash')
-        if not hash_value:
-            print("No hash parameter")
+
+        if not init_data or not isinstance(init_data, str):
+            logger.error(f'Invalid init_data: {init_data}')
             return False
-        
-        print(f"Hash to check: {hash_value[:20]}...")
-        
-        # 2. Create data_check_string WITHOUT 'hash'
-        # Parameters should be in ALPHABETICAL order!
-        data_check_parts = []
-        
-        # Sort alphabetically and exclude 'hash'
-        for key in sorted(params.keys()):
-            if key != 'hash':
-                data_check_parts.append(f"{key}={params[key]}")
-        
-        data_check_string = '\n'.join(data_check_parts)
-        
-        print(f"\nData check string ({len(data_check_string)} chars):")
-        print(data_check_string)
-        
-        # 3. Log the exact order
-        print(f"\nParameter order in check string:")
-        for i, part in enumerate(data_check_parts):
-            key = part.split('=')[0]
-            print(f"  {i+1}. {key}")
-        
-        # 4. Compute secret
-        secret = hmac.new(
-            key=b"WebAppData",
-            msg=settings.TELEGRAM_BOT_TOKEN.encode(),
+
+        if not settings.TELEGRAM_BOT_TOKEN:
+            logger.error('Invalid bot_token')
+            return False
+
+        pars = init_data.split('&')
+        data_dict = {}
+        hash_value = None
+
+        for pair in pars:
+            key, value = pair.split('=')
+            if key == 'hash':
+                hash_value = value
+            else:
+                data_dict[key] = value
+
+        if not hash_value:
+            return False
+
+        data_check = '\n'.join(
+            f'{key}={data_dict[key]}'
+            for key in sorted(data_dict.keys())
+        )
+
+        bot_token_bytes = settings.TELEGRAM_BOT_TOKEN.encode('utf-8')
+
+        secret_key = hmac.new(
+            key=bot_token_bytes,
+            msg=b"WebAppData",
             digestmod=hashlib.sha256
         ).digest()
-        
-        print(f"\nSecret key (first 16 bytes): {secret[:16].hex()}...")
-        
-        # 5. Compute hash
-        computed = hmac.new(
-            key=secret,
-            msg=data_check_string.encode(),
+
+        computed_hash = hmac.new(
+            key=secret_key,
+            msg=data_check.encode(),
             digestmod=hashlib.sha256
         ).hexdigest()
-        
-        print(f"\nComputed hash: {computed}")
-        print(f"Expected hash: {hash_value}")
-        
-        result = hmac.compare_digest(computed, hash_value)
-        print(f"\nResult: {'✅ SUCCESS' if result else '❌ FAILED'}")
-        
-        return result
-        
+
+        return computed_hash == hash_value
     except Exception as e:
-        print(f"Error: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f'Error: {e}')
         return False
+
 
 def create_jwt_token(data: dict):
     to_encore = data.copy()
@@ -173,7 +81,7 @@ def verify_jwt_token(token: str) -> Optional[dict]:
         payload = jwt.decode(
             token,
             settings.SECRET_KEY,
-            algorithms=[settings.ALGORITHM]
+            algorithms=settings.ALGORITHM
         )
         return payload
     except JWTError:
