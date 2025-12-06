@@ -1,5 +1,5 @@
 from jose import JWTError, jwt
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 import hashlib
 import hmac
@@ -74,8 +74,8 @@ def verify_tg_init_data(init_data: str) -> bool:
 
 def create_jwt_token(data: dict):
     to_encore = data.copy()
-
-    expire = datetime.utcnow() + settings.ACCESS_TOKEN_EXPIRE_MINUTES
+    delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.utcnow() + delta
 
     to_encore.update({'exp': expire})
 
