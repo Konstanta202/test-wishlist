@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
+import logging
 
 from app.core.db import get_db
 from app.core.security import (
@@ -12,6 +13,8 @@ from app.schemas.user import UserCreate, UserResponse
 from app.services.user_service import UserService
 # from app.models.user import User
 
+logger = logging.getLogger(__name__)
+
 
 router = APIRouter(prefix='/auth', tags=['auth'])
 security = HTTPBearer()
@@ -22,16 +25,27 @@ async def auth_telegram(
     auth_data: dict,
     db: AsyncSession = Depends(get_db)
 ):
+    logger.info(f"Received auth_telegram request: {auth_data}")
     init_data = auth_data.get('initData')
     if not init_data:
+        logger.error("No initData in request")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Invalid init data'
         )
 
     telegram_user = auth_data.get('user')
+    if not telegram_user:
+        logger.error("No user in request")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Invalid user data'
+        )
+
+    logger.info("Verifying Telegram init data")
 
     if not verify_tg_init_data(init_data=init_data):
+        logger.error("Telegram signature verification failed")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Invalid Telegram signature'
@@ -43,9 +57,11 @@ async def auth_telegram(
     username = telegram_user.get('username', '')
     photo_url = telegram_user.get('photo_url', '')
 
+    logger.info(f"Looking for user with telegram_id: {telegram_id}")
     user = await UserService.get_user_by_telegram_id(db, telegram_id)
 
     if not user:
+        logger.info(f"Creating new user for telegram_id: {telegram_id}")
         user_create = UserCreate(
             telegram_id=telegram_id,
             name=f'{first_name} {last_name}'.strip(),
@@ -53,15 +69,25 @@ async def auth_telegram(
         )
         user = await UserService.create_user(db, user_create)
     else:
+        logger.info(f"Found existing user for telegram_id: {telegram_id}")
         user = UserResponse.model_validate(user)
 
+    logger.info(f"Creating JWT token for user_id: {user.id}")
     token_data = {
         'sub': str(user.id),
         'telegram_id': str(telegram_id),
         'username': username
     }
-    access_token = create_jwt_token(token_data)
-
+    
+    try:
+        access_token = create_jwt_token(token_data)
+        logger.info(f"JWT token created successfully")
+    except Exception as e:
+        logger.error(f"Error creating JWT token: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail='Error creating token'
+        )
     return {
         'success': True,
         'token': access_token,
