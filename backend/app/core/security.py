@@ -1,5 +1,5 @@
 # from jose import JWTError, jwt
-import jwt
+import jwt  # PyJWT
 from jwt.exceptions import InvalidTokenError, ExpiredSignatureError
 from datetime import datetime, timedelta
 from typing import Optional
