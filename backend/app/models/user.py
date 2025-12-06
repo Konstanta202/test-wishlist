@@ -76,56 +76,56 @@ class User(Base):
 
     # Relationship
 
-    wishlists: Mapped[List['Wishlist']] = relationship(
-        'Wishlist',
-        back_populates='owner'
-    )
-    wishes: Mapped[List['Wish']] = relationship(
-        'Wish',
-        back_populates='owner'
-    )
-    subscriptions: Mapped[List['Subscription']] = relationship(
-        'Subscription',
-        foreign_keys='[Subscription.target_user_id]',
-        back_populates='target_user'
-    )
-    blocked_users: Mapped[List['BlockedUser']] = relationship(
-        'BlockedUser',
-        foreign_keys='[BlockedUser.blocker_id]',
-        back_populates='blocker'
-    )
-    blocked_by: Mapped[List['BlockedUser']] = relationship(
-        'BlockedUser',
-        foreign_keys='[BlockedUser.blocked_id]',
-        back_populates='blocker'
-    )
-    access_requests_sent: Mapped[List['AccessRequest']] = relationship(
-        'AccessRequest',
-        foreign_keys='[AccessRequest.requester_id]',
-        back_populates='requester'
-    )
-    access_requests_received: Mapped[List['AccessRequest']] = relationship(
-        'AccessRequest',
-        foreign_keys='[AccessRequest.wishlist_id]',
-        back_populates='wishlist',
-        viewonly=True
-    )
-    wish_reservations: Mapped[List['WishReservation']] = relationship(
-        'WishReservation',
-        foreign_keys='[WishReservation.reserved_id]'
-    )
-    wishlist_subscribers: Mapped[List['Subscription']] = relationship(
-        'Subscription',
-        foreign_keys='[Subscription.target_wihslist_id]',
-        back_populates='target_wihslist_id',
-        viewonly=True
-    )
-    questionnaire: Mapped['UserForm'] = relationship(
-        'UserForm',
-        back_populates='user'
-    )
-    notification_settings: Mapped['NotificationSettings'] = relationship(
-        'NotificationSettings',
-        back_populates='user',
-        uselist=False
-    )
+    # wishlists: Mapped[List['Wishlist']] = relationship(
+    #     'Wishlist',
+    #     back_populates='owner'
+    # )
+    # wishes: Mapped[List['Wish']] = relationship(
+    #     'Wish',
+    #     back_populates='owner'
+    # )
+    # subscriptions: Mapped[List['Subscription']] = relationship(
+    #     'Subscription',
+    #     foreign_keys='[Subscription.target_user_id]',
+    #     back_populates='target_user'
+    # )
+    # blocked_users: Mapped[List['BlockedUser']] = relationship(
+    #     'BlockedUser',
+    #     foreign_keys='[BlockedUser.blocker_id]',
+    #     back_populates='blocker'
+    # )
+    # blocked_by: Mapped[List['BlockedUser']] = relationship(
+    #     'BlockedUser',
+    #     foreign_keys='[BlockedUser.blocked_id]',
+    #     back_populates='blocker'
+    # )
+    # access_requests_sent: Mapped[List['AccessRequest']] = relationship(
+    #     'AccessRequest',
+    #     foreign_keys='[AccessRequest.requester_id]',
+    #     back_populates='requester'
+    # )
+    # access_requests_received: Mapped[List['AccessRequest']] = relationship(
+    #     'AccessRequest',
+    #     foreign_keys='[AccessRequest.wishlist_id]',
+    #     back_populates='wishlist',
+    #     viewonly=True
+    # )
+    # wish_reservations: Mapped[List['WishReservation']] = relationship(
+    #     'WishReservation',
+    #     foreign_keys='[WishReservation.reserved_id]'
+    # )
+    # wishlist_subscribers: Mapped[List['Subscription']] = relationship(
+    #     'Subscription',
+    #     foreign_keys='[Subscription.target_wihslist_id]',
+    #     back_populates='target_wihslist_id',
+    #     viewonly=True
+    # )
+    # questionnaire: Mapped['UserForm'] = relationship(
+    #     'UserForm',
+    #     back_populates='user'
+    # )
+    # notification_settings: Mapped['NotificationSettings'] = relationship(
+    #     'NotificationSettings',
+    #     back_populates='user',
+    #     uselist=False
+    # )
