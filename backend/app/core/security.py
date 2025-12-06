@@ -82,7 +82,7 @@ logger = logging.getLogger(__name__)
 
 def verify_tg_init_data(init_data: str) -> bool:
     try:
-        print("DEBUG: Trying HASH verification only")
+        print("=== HASH VERIFICATION ===")
         
         # Извлекаем hash
         pairs = init_data.split('&')
@@ -95,6 +95,7 @@ def verify_tg_init_data(init_data: str) -> bool:
             key, value = pair.split('=', 1)
             if key == 'hash':
                 hash_value = value
+                print(f"Hash to verify: {value}")
             else:
                 data_dict[key] = value
         
@@ -102,40 +103,50 @@ def verify_tg_init_data(init_data: str) -> bool:
             print("No hash found")
             return False
         
-        # Собираем строку (все кроме hash)
+        print(f"Data keys (except hash): {list(data_dict.keys())}")
+        
+        # Важно: Нужно исключить ТОЛЬКО 'hash', но оставить 'signature'!
+        # Строка должна содержать все параметры кроме 'hash'
         check_items = []
         for key in sorted(data_dict.keys()):
-            if key != 'hash':
-                check_items.append(f"{key}={data_dict[key]}")
+            # Включаем ВСЕ ключи, включая 'signature'!
+            check_items.append(f"{key}={data_dict[key]}")
         
         check_string = "\n".join(check_items)
-        print(f"Check string length: {len(check_string)}")
-        print(f"Check string: {check_string}")
+        print(f"Check string ({len(check_string)} chars):")
+        print(check_string)
         
-        # Проверяем
+        # Ключ для HMAC
+        # Сначала создаем секретный ключ из токена бота
         secret_key = hmac.new(
             key=b"WebAppData",
             msg=settings.TELEGRAM_BOT_TOKEN.encode(),
             digestmod=hashlib.sha256
         ).digest()
         
+        print(f"Secret key (first 16 bytes hex): {secret_key[:16].hex()}")
+        
+        # Теперь вычисляем hash
         calculated = hmac.new(
             key=secret_key,
             msg=check_string.encode(),
             digestmod=hashlib.sha256
         ).hexdigest()
         
-        print(f"Calculated: {calculated}")
-        print(f"Expected:   {hash_value}")
+        print(f"Calculated hash: {calculated}")
+        print(f"Expected hash:   {hash_value}")
         
-        result = calculated == hash_value
-        print(f"Result: {result}")
+        result = hmac.compare_digest(calculated, hash_value)
+        print(f"Verification result: {result}")
         
         return result
         
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error in verify_tg_init_data: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False
+
 
 def create_jwt_token(data: dict):
     to_encore = data.copy()
