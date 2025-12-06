@@ -81,70 +81,51 @@ logger = logging.getLogger(__name__)
 
 
 def verify_tg_init_data(init_data: str) -> bool:
+    """
+    Verify Telegram WebApp initData
+    Source: https://core.telegram.org/bots/webapps#validating-data-received-via-the-web-app
+    """
     try:
-        print("=== HASH VERIFICATION ===")
-        
-        # Извлекаем hash
-        pairs = init_data.split('&')
-        data_dict = {}
-        hash_value = None
-        
-        for pair in pairs:
-            if '=' not in pair:
-                continue
+        # Parse initData
+        parsed = {}
+        for pair in init_data.split('&'):
             key, value = pair.split('=', 1)
-            if key == 'hash':
-                hash_value = value
-                print(f"Hash to verify: {value}")
-            else:
-                data_dict[key] = value
+            parsed[key] = value
         
+        hash_value = parsed.pop('hash', None)
         if not hash_value:
-            print("No hash found")
             return False
         
-        print(f"Data keys (except hash): {list(data_dict.keys())}")
+        # Create data_check_string
+        data_check_string = '\n'.join(
+            f"{key}={parsed[key]}"
+            for key in sorted(parsed.keys())
+        )
         
-        # Важно: Нужно исключить ТОЛЬКО 'hash', но оставить 'signature'!
-        # Строка должна содержать все параметры кроме 'hash'
-        check_items = []
-        for key in sorted(data_dict.keys()):
-            # Включаем ВСЕ ключи, включая 'signature'!
-            check_items.append(f"{key}={data_dict[key]}")
+        print(f"Data check string:\n{data_check_string}")
         
-        check_string = "\n".join(check_items)
-        print(f"Check string ({len(check_string)} chars):")
-        print(check_string)
-        
-        # Ключ для HMAC
-        # Сначала создаем секретный ключ из токена бота
+        # Generate secret key
         secret_key = hmac.new(
             key=b"WebAppData",
             msg=settings.TELEGRAM_BOT_TOKEN.encode(),
             digestmod=hashlib.sha256
         ).digest()
         
-        print(f"Secret key (first 16 bytes hex): {secret_key[:16].hex()}")
-        
-        # Теперь вычисляем hash
-        calculated = hmac.new(
+        # Calculate hash
+        calculated_hash = hmac.new(
             key=secret_key,
-            msg=check_string.encode(),
+            msg=data_check_string.encode(),
             digestmod=hashlib.sha256
         ).hexdigest()
         
-        print(f"Calculated hash: {calculated}")
-        print(f"Expected hash:   {hash_value}")
+        print(f"Calculated: {calculated_hash}")
+        print(f"Expected:   {hash_value}")
         
-        result = hmac.compare_digest(calculated, hash_value)
-        print(f"Verification result: {result}")
-        
-        return result
+        # Compare
+        return hmac.compare_digest(calculated_hash, hash_value)
         
     except Exception as e:
-        print(f"Error in verify_tg_init_data: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        print(f"Verification error: {e}")
         return False
 
 
