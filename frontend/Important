@@ -1,0 +1,25 @@
+cd ~/Downloads/podari-minye
+
+# Voir l’arborescence
+ls -R src
+
+# Voir tout le contenu des .svelte / .js / .ts
+find src -type f \( -name "*.svelte" -o -name "*.js" -o -name "*.ts" \) -print -exec echo "===== {} =====" \; -exec cat {} \;
+
+
+TOKEN_@padari_minye_bot:
+LINK ngrok: https://damon-heptangular-heritably.ngrok-free.dev/
+
+1.Lancer dans le terminal
+ngrok http 5173
+
+2. Lancer le conteneur(DockerFile)
+docker build -t sveltekit-frontend .
+docker run -p 5173:5173 sveltekit-frontend
+
+
+
+WebStorm Frontend (Svelte)
+npm install
+npm run dev
+npm run build
