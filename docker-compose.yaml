@@ -32,7 +32,7 @@ services:
     build: ./backend
     container_name: backend-app
     env_file:
-      - backend/ENV/.env 
+      - backend/.env 
     # volumes:
     # - ./backend/:/app
     # ports:
