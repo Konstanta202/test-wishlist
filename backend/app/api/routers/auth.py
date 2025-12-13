@@ -112,7 +112,9 @@ async def refresh_token(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db)
 ):
+    
     token = credentials.credentials
+    logger.error(f'THIS IS TOKEN in refresh: {token}')
     payload = verify_jwt_token(token)
 
     if not payload:
@@ -160,7 +162,8 @@ async def get_current_user(
         )
 
     user_id = int(payload.get('sub'))
-    user = await UserService.get_user(db, user_id)
+    user_service = UserService(db)
+    user = await user_service.get_user(user_id)
 
     if not user:
         raise HTTPException(

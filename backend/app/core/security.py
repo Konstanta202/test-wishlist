@@ -101,22 +101,12 @@ def verify_tg_init_data(init_data: str) -> bool:
     except Exception as e:
         logger.error(f'Error verifying init_data: {e}', exc_info=True)
         return False
-# def verify_tg_init_data(init_data: str) -> bool:
-#     """
-#     TEMPORARY: Telegram verification disabled for debugging
-#     """
-#     print("=" * 50)
-#     print("TELEGRAM VERIFICATION FUNCTION CALLED")
-#     print("TEMPORARILY RETURNING TRUE FOR DEBUGGING")
-#     print("=" * 50)
-#     return True  # ← Ключевая строка!
 
 
 def create_jwt_token(data: dict) -> str:
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({'exp': expire})
-    
     encoded_jwt = jwt.encode(
         to_encode,
         settings.SECRET_KEY,
@@ -127,11 +117,13 @@ def create_jwt_token(data: dict) -> str:
 
 def verify_jwt_token(token: str) -> Optional[dict]:
     try:
+        logger.error(f'START verify TOKEN: {token}')
         payload = jwt.decode(
             token,
             settings.SECRET_KEY,
             algorithms=[settings.ALGORITHM]
         )
+        logger.error(f'START verify PAYLOAD: {payload}')
         return payload
     except InvalidTokenError:
         return None
