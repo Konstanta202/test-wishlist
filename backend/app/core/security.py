@@ -1,4 +1,5 @@
 # security.py с PyJWT
+import hashlib
 import jwt  # PyJWT
 from jwt.exceptions import InvalidTokenError
 from datetime import datetime, timedelta
@@ -33,7 +34,7 @@ def verify_tg_init_data(init_data: str) -> bool:
                 hash_value = value
             else:
                 data_dict[key] = value
-
+        logger.error(f'MESSAGE hash: {hash_value}')
         if not hash_value:
             return False
 
@@ -50,6 +51,8 @@ def verify_tg_init_data(init_data: str) -> bool:
             digestmod=hashlib.sha256
         ).digest()
 
+        logger.error(f'SECRET KEY: {secret_key}')
+
         computed_hash = hmac.new(
             key=secret_key,
             msg=data_check.encode(),
@@ -60,6 +63,7 @@ def verify_tg_init_data(init_data: str) -> bool:
     except Exception as e:
         print(f'Error: {e}')
         return False
+
 # def verify_tg_init_data(init_data: str) -> bool:
 #     """
 #     TEMPORARY: Telegram verification disabled for debugging

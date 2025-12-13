@@ -12,6 +12,7 @@ from app.core.security import (
 from app.schemas.user import UserCreate, UserResponse
 from app.services.user_service import UserService
 from app.models.user import User
+import urllib
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +30,12 @@ async def auth_telegram(
     init_data = auth_data.get('initData')
     logger.error(f'THIS IS auth_data: {auth_data}')
     logger.error(f'THIS IS INIT DATA: {init_data}')
-    pars = init_data.split('&')
-    logger.error(f'THIS IS PARS!!!! INIT DATA: {pars}')
+    
+    decoded_data = urllib.parse.unquote(init_data)
+    logger.error(f'THIS IS PARS!!!! INIT DATA: {decoded_data}')
+    pars = decoded_data.split('&')
+    logger.error(f'THIS IS !!!! INIT DECODE DATA: {decoded_data}')
+    logger.error(f'THIS IS PARS!!!! INIT DATA DECODE: {pars}')
     if not init_data:
         logger.error("No initData in request")
         raise HTTPException(
