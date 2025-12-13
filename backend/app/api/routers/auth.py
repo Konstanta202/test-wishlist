@@ -68,7 +68,8 @@ async def auth_telegram(
     photo_url = telegram_user.get('photo_url', '')
 
     logger.error(f"Looking for user with telegram_id: {telegram_id}")
-    user = await UserService.get_user_by_telegram_id(db, telegram_id)
+    user_service = UserService(db)
+    user = await user_service.get_user_by_telegram_id(db, telegram_id)
 
     if not user:
         logger.error(f"Creating new user for telegram_id: {telegram_id}")
@@ -77,7 +78,7 @@ async def auth_telegram(
             name=f'{first_name} {last_name}'.strip(),
             photo=photo_url
         )
-        user = await UserService.create_user(db, user_create)
+        user = await user_service.create_user(db, user_create)
     else:
         logger.error(f"Found existing user for telegram_id: {telegram_id}")
         user = UserResponse.model_validate(user)
