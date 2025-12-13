@@ -107,7 +107,7 @@
         // Проверка токена
         async function verifyToken() {
             try {
-                const response = await fetch('/api/v1/users/me', {
+                const response = await fetch('/api/v1/auth/me', {
                     headers: {'Authorization': `Bearer ${authToken}`}
                 });
                 
