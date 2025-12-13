@@ -112,7 +112,7 @@ async def refresh_token(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db)
 ):
-    
+
     token = credentials.credentials
     logger.error(f'THIS IS TOKEN in refresh: {token}')
     payload = verify_jwt_token(token)
@@ -124,7 +124,8 @@ async def refresh_token(
         )
 
     user_id = int(payload.get('sub'))
-    user = await UserService.get_user(db, user_id)
+    user_service = UserService(db)
+    user = await user_service.get_user(user_id)
 
     if not user:
         raise HTTPException(
@@ -145,30 +146,3 @@ async def refresh_token(
         'token': new_access_token,
         'token_type': 'bearer',
     }
-
-
-@router.get('/me')
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: AsyncSession = Depends(get_db)
-):
-    token = credentials.credentials
-    payload = verify_jwt_token(token)
-
-    if not payload:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='Invalid Token'
-        )
-
-    user_id = int(payload.get('sub'))
-    user_service = UserService(db)
-    user = await user_service.get_user(user_id)
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='User not found'
-        )
-
-    return user
