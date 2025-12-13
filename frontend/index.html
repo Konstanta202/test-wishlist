@@ -175,6 +175,20 @@
                 displayResponse('GET /dosc', result.status, result.data);
             };
 
+            document.getElementById('test-health').onclick = async () => {
+                try {
+                    // Проверяем доступность документации
+                    const response = await fetch('/api/docs');
+                    if (response.ok) {
+                        window.open('/docs', '_blank');
+                        displayResponse('GET /docs', response.status, '✅ Документация открыта в новой вкладке');
+                    } else {
+                        displayResponse('GET /docs', response.status, '❌ Документация недоступна');
+                    }
+                } catch (error) {
+                    displayResponse('GET /docs', 'ERROR', error.message);
+                }
+            };
             
             
             document.getElementById('refresh-token').onclick = async () => {
