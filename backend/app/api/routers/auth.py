@@ -29,6 +29,8 @@ async def auth_telegram(
     init_data = auth_data.get('initData')
     logger.error(f'THIS IS auth_data: {auth_data}')
     logger.error(f'THIS IS INIT DATA: {init_data}')
+    pars = init_data.split('&')
+    logger.error(f'THIS IS PARS!!!! INIT DATA: {pars}')
     if not init_data:
         logger.error("No initData in request")
         raise HTTPException(
