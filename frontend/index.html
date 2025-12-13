@@ -169,21 +169,13 @@
                 });
                 displayResponse('GET /api/v1/users/me', result.status, result.data);
             };
-
+            
             document.getElementById('test-health').onclick = async () => {
-                try {
-                    // Проверяем доступность документации
-                    const response = await fetch('/api/docs');
-                    if (response.ok) {
-                        window.open('/api/docs', '_blank');
-                        displayResponse('GET /api/docs', response.status, '✅ Документация открыта в новой вкладке');
-                    } else {
-                        displayResponse('GET /api/docs', response.status, '❌ Документация недоступна');
-                    }
-                } catch (error) {
-                    displayResponse('GET /api/docs', 'ERROR', error.message);
-                }
+                const result = await testAPI('/docs');
+                displayResponse('GET /dosc', result.status, result.data);
             };
+
+            
             
             document.getElementById('refresh-token').onclick = async () => {
                 const result = await testAPI('/api/v1/auth/refresh', 'POST', {
