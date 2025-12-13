@@ -67,11 +67,11 @@ async def auth_telegram(
     username = telegram_user.get('username', '')
     photo_url = telegram_user.get('photo_url', '')
 
-    logger.info(f"Looking for user with telegram_id: {telegram_id}")
+    logger.error(f"Looking for user with telegram_id: {telegram_id}")
     user = await UserService.get_user_by_telegram_id(db, telegram_id)
 
     if not user:
-        logger.info(f"Creating new user for telegram_id: {telegram_id}")
+        logger.error(f"Creating new user for telegram_id: {telegram_id}")
         user_create = UserCreate(
             telegram_id=telegram_id,
             name=f'{first_name} {last_name}'.strip(),
@@ -79,16 +79,16 @@ async def auth_telegram(
         )
         user = await UserService.create_user(db, user_create)
     else:
-        logger.info(f"Found existing user for telegram_id: {telegram_id}")
+        logger.error(f"Found existing user for telegram_id: {telegram_id}")
         user = UserResponse.model_validate(user)
 
-    logger.info(f"Creating JWT token for user_id: {user.id}")
+    logger.error(f"Creating JWT token for user_id: {user.id}")
     token_data = {
         'sub': str(user.id),
         'telegram_id': str(telegram_id),
         'username': username
     }
-
+    logger.error(f"Creating JWT token for user")
     try:
         access_token = create_jwt_token(token_data)
         logger.info(f"JWT token created successfully")
