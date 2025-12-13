@@ -81,7 +81,7 @@
                     throw new Error('Нет данных от Telegram');
                 }
                 
-                const response = await fetch('/api/v1/auth/telegram', {
+                const response = await fetch('/api/v1/users/telegram', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ initData: initData, user: initDataUnsafe.user })
@@ -107,7 +107,7 @@
         // Проверка токена
         async function verifyToken() {
             try {
-                const response = await fetch('/api/v1/auth/me', {
+                const response = await fetch('/api/v1/users/me', {
                     headers: {'Authorization': `Bearer ${authToken}`}
                 });
                 
