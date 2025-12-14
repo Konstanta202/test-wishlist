@@ -14,69 +14,100 @@ logger = logging.getLogger(__name__)
 
 def verify_tg_init_data(init_data: str) -> bool:
     try:
+        print("=" * 60)
+        print("🔍 START VERIFICATION")
+        print("=" * 60)
+        
         if not init_data or not isinstance(init_data, str):
-            logger.error(f'Invalid init_data: {init_data}')
+            print("❌ Invalid init_data")
             return False
 
         if not settings.TELEGRAM_BOT_TOKEN:
-            logger.error('Invalid bot_token')
+            print("❌ Invalid bot_token")
             return False
 
-        decoded_data = urllib.parse.unquote(init_data)
+        # 1. Декодируем один раз
+        decoded_once = urllib.parse.unquote(init_data)
+        print(f"📥 Decoded once: {decoded_once[:200]}...")
 
-        pars = decoded_data.split('&')
-        data_dict = {}
-        hash_value = None
-
-        for pair in pars:
+        # 2. Разбираем параметры НА ДВЕ ЧАСТИ:
+        # - Для проверки хеша: оригинальные значения из decoded_once
+        # - Для получения user данных: очищенные значения
+        
+        # 2.1 Для хеша (оригинальные значения)
+        hash_params = {}
+        received_hash = None
+        
+        # 2.2 Для данных пользователя (очищенные значения)
+        user_data = None
+        
+        for pair in decoded_once.split('&'):
             if '=' not in pair:
                 continue
 
             key, value = pair.split('=', 1)
 
             if key == 'hash':
-                hash_value = value
+                received_hash = value
             elif key == 'user':
-                # user уже частично декодирован, нужно убрать оставшиеся escape-символы
-                # Заменяем \/ на /
-                cleaned_value = value.replace('\\/', '/')
-                data_dict[key] = cleaned_value
+                # Сохраняем ОРИГИНАЛЬНОЕ значение для data_check_string
+                hash_params[key] = value
+                
+                # Для извлечения данных пользователя - очищаем
+                try:
+                    cleaned_value = value.replace('\\/', '/')
+                    user_data = json.loads(cleaned_value)
+                    print(f"✅ User data extracted: id={user_data.get('id')}")
+                except Exception as e:
+                    print(f"❌ Failed to parse user JSON: {e}")
             else:
-                data_dict[key] = value
+                hash_params[key] = value
 
-        if not hash_value:
-            logger.error('No hash in init_data')
+        print(f"🔑 Received hash: {received_hash}")
+        print(f"📊 Hash params keys: {list(hash_params.keys())}")
+        
+        if not received_hash:
+            print("❌ No hash in init_data")
             return False
 
-        sorted_keys = sorted(data_dict.keys())
+        # 3. Создаем data_check_string из ОРИГИНАЛЬНЫХ значений
+        sorted_keys = sorted(hash_params.keys())
         data_check_parts = []
-
+        
         for key in sorted_keys:
-            value = data_dict[key]
-            data_check_parts.append(f'{key}={value}')
-
+            data_check_parts.append(f'{key}={hash_params[key]}')
+        
         data_check_string = '\n'.join(data_check_parts)
-        logger.error(f'Data check string:\n{data_check_string}')
+        print(f"📝 Data check string:\n{data_check_string}")
 
+        # 4. Вычисляем secret_key
         secret_key = hmac.new(
             key=b"WebAppData",
             msg=settings.TELEGRAM_BOT_TOKEN.encode('utf-8'),
             digestmod=hashlib.sha256
         ).digest()
 
-        logger.error(f'Secret key (hex): {secret_key.hex()}')
+        print(f"🔐 Secret key (hex): {secret_key.hex()}")
 
+        # 5. Вычисляем hash
         computed_hash = hmac.new(
             key=secret_key,
             msg=data_check_string.encode('utf-8'),
             digestmod=hashlib.sha256
         ).hexdigest()
 
-        result = hmac.compare_digest(computed_hash, hash_value)
-
+        print(f"⚡ Computed hash: {computed_hash}")
+        print(f"📨 Received hash: {received_hash}")
+        print(f"✅ Match: {computed_hash == received_hash}")
+        print("=" * 60)
+        
+        result = hmac.compare_digest(computed_hash, received_hash)
         return result
+        
     except Exception as e:
-        logger.error(f'Error verifying init_data: {e}', exc_info=True)
+        print(f"❌ Error verifying init_data: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
