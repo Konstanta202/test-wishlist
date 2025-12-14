@@ -11,28 +11,32 @@ import urllib
 
 logger = logging.getLogger(__name__)
 
+
 def verify_tg_init_data(init_data: str) -> bool:
     """
-    ИСПРАВЛЕННАЯ проверка - БЕЗ signature в data_check_string!
+    Проверяет валидность Telegram WebApp initData
+    
+    Args:
+        init_data: Строка в формате "key1=value1&key2=value2&hash=..."
+    
+    Returns:
+        bool: True если подпись верна, False если нет
     """
     try:
-        print("=" * 80)
-        print("🚀 CORRECTED TELEGRAM VERIFICATION")
-        print("=" * 80)
-        
+        # 1. Проверка входных данных
         if not init_data or not isinstance(init_data, str):
-            print("❌ Invalid init_data")
+            logger.error(f'Invalid init_data: {init_data}')
             return False
 
         if not settings.TELEGRAM_BOT_TOKEN:
-            print("❌ Invalid bot_token")
+            logger.error('Invalid bot_token')
             return False
-
-        # 1. Декодируем
-        decoded_data = urllib.parse.unquote(init_data)
-        print(f"📥 Decoded (first 150 chars): {decoded_data[:150]}...")
         
-        # 2. Разбираем параметры - ВАЖНО: исключаем signature!
+        # 2. Декодируем URL-encoded строку
+        decoded_data = urllib.parse.unquote(init_data)
+        logger.error(f'Decoded init_data: {decoded_data}')
+        
+        # 3. Разбираем параметры
         pars = decoded_data.split('&')
         data_dict = {}
         hash_value = None
@@ -45,21 +49,18 @@ def verify_tg_init_data(init_data: str) -> bool:
             
             if key == 'hash':
                 hash_value = value
-            elif key == 'signature':
-                # ⚠️ ВАЖНО: signature НЕ включаем в data_check_string!
-                print(f"⚠️ Found signature (ignored for hash): {value[:30]}...")
-                continue  # Пропускаем!
             else:
                 data_dict[key] = value
         
-        print(f"🔑 Received hash: {hash_value}")
-        print(f"📊 Data dict keys (without signature!): {list(data_dict.keys())}")
+        logger.error(f'Hash from data: {hash_value}')
+        logger.error(f'Data dict keys: {list(data_dict.keys())}')
         
         if not hash_value:
-            print("❌ No hash in init_data")
+            logger.error('No hash in init_data')
             return False
         
-        # 3. Создаем data_check_string БЕЗ signature
+        # 4. Создаем data_check_string
+        # Нужно сортировать ключи в алфавитном порядке
         sorted_keys = sorted(data_dict.keys())
         data_check_parts = []
         
@@ -68,55 +69,47 @@ def verify_tg_init_data(init_data: str) -> bool:
             data_check_parts.append(f'{key}={value}')
         
         data_check_string = '\n'.join(data_check_parts)
-        print(f"📝 Data check string (CORRECT - no signature):")
-        print(data_check_string)
-        print("-" * 40)
+        logger.error(f'Data check string:\n{data_check_string}')
         
-        # 4. Вычисляем секретный ключ
+        # 5. Вычисляем секретный ключ (ВАЖНО: правильный порядок!)
+        # По документации Telegram: HMAC-SHA256 signature of the bot's token 
+        # with the constant string "WebAppData" used as a key.
         secret_key = hmac.new(
-            key=b"WebAppData",
-            msg=settings.TELEGRAM_BOT_TOKEN.encode('utf-8'),
+            key=b"WebAppData",  # КЛЮЧ - константа "WebAppData"
+            msg=settings.TELEGRAM_BOT_TOKEN.encode('utf-8'),  # СООБЩЕНИЕ - bot_token
             digestmod=hashlib.sha256
         ).digest()
         
-        print(f"🔐 Secret key (hex): {secret_key.hex()}")
-        print(f"🔐 Using bot token (first/last): {settings.TELEGRAM_BOT_TOKEN[:10]}...{settings.TELEGRAM_BOT_TOKEN[-10:]}")
+        logger.error(f'Secret key (hex): {secret_key.hex()}')
         
-        # 5. Вычисляем хеш
+        # 6. Вычисляем хеш
         computed_hash = hmac.new(
-            key=secret_key,
-            msg=data_check_string.encode('utf-8'),
+            key=secret_key,  # КЛЮЧ - секретный ключ, вычисленный выше
+            msg=data_check_string.encode('utf-8'),  # СООБЩЕНИЕ - data_check_string
             digestmod=hashlib.sha256
         ).hexdigest()
         
-        print(f"⚡ Computed hash: {computed_hash}")
-        print(f"📨 Received hash: {hash_value}")
+        logger.error(f'Computed hash: {computed_hash}')
+        logger.error(f'Received hash: {hash_value}')
         
-        # 6. Сравниваем
+        # 7. Сравниваем
         result = hmac.compare_digest(computed_hash, hash_value)
-        print(f"✅ Hash comparison result: {result}")
+        logger.info(f'Hash comparison result: {result}')
         
-        if not result:
-            print("❌ HASH MISMATCH!")
-            print("   Проверьте что:")
-            print("   1. Bot token правильный")
-            print("   2. signature НЕ включен в data_check_string")
-            print("   3. Параметры отсортированы правильно")
-            
-            # Отладочная информация
-            print(f"\n🔍 DEBUG INFO:")
-            print(f"   Data check string length: {len(data_check_string)}")
-            print(f"   First 100 chars: {data_check_string[:100]}")
-            print(f"   Last 100 chars: {data_check_string[-100:]}")
-        
-        print("=" * 80)
         return result
         
     except Exception as e:
-        print(f"❌ Error verifying init_data: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f'Error verifying init_data: {e}', exc_info=True)
         return False
+# def verify_tg_init_data(init_data: str) -> bool:
+#     """
+#     TEMPORARY: Telegram verification disabled for debugging
+#     """
+#     print("=" * 50)
+#     print("TELEGRAM VERIFICATION FUNCTION CALLED")
+#     print("TEMPORARILY RETURNING TRUE FOR DEBUGGING")
+#     print("=" * 50)
+#     return True  # ← Ключевая строка!
 
 
 def create_jwt_token(data: dict) -> str:
