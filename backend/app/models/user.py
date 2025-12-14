@@ -77,7 +77,7 @@ class User(Base):
 
     # Relationship
 
-    # wishlists: Mapped[List['Wishlist']] = relationship(
+    # wishlists: Mapped[List['Wis-hlist']] = relationship(
     #     'Wishlist',
     #     back_populates='owner'
     # )
