@@ -23,7 +23,6 @@ def verify_tg_init_data(init_data: str) -> bool:
             return False
 
         decoded_data = urllib.parse.unquote(init_data)
-        logger.error(f'Decoded init_data: {decoded_data}')
 
         pars = decoded_data.split('&')
         data_dict = {}
@@ -37,6 +36,11 @@ def verify_tg_init_data(init_data: str) -> bool:
 
             if key == 'hash':
                 hash_value = value
+            elif key == 'user':
+                # user уже частично декодирован, нужно убрать оставшиеся escape-символы
+                # Заменяем \/ на /
+                cleaned_value = value.replace('\\/', '/')
+                data_dict[key] = cleaned_value
             else:
                 data_dict[key] = value
 
